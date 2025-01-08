@@ -110,6 +110,13 @@
         let students = [];
         let studentId = 1;
 
+        // Load existing data from localStorage
+        if (localStorage.getItem("studentsData")) {
+            students = JSON.parse(localStorage.getItem("studentsData"));
+            studentId = students.length ? students[students.length - 1].id + 1 : 1;
+            renderTable();
+        }
+
         const subjectMapping = {
             "Basic": ["Basic"],
             "Computer Operator": ["Basic", "Tally", "Photoshop", "Hardware"],
@@ -158,6 +165,7 @@
             };
 
             students.push(student);
+            saveToLocalStorage();
             renderTable();
 
             document.getElementById("studentForm").reset();
@@ -189,6 +197,7 @@
 
         function deleteStudent(id) {
             students = students.filter(student => student.id !== id);
+            saveToLocalStorage();
             renderTable();
         }
 
@@ -260,6 +269,11 @@
 
             // Save as Excel file
             XLSX.writeFile(wb, "students_data.xlsx");
+        }
+
+        // Save data to localStorage
+        function saveToLocalStorage() {
+            localStorage.setItem("studentsData", JSON.stringify(students));
         }
     </script>
 
