@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prolific Computer - Students Details & Marks Entry</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .table-container {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center text-primary mb-4">Prolific Computer - Students Details & Marks Entry</h1>
+
+        <form id="studentForm" class="shadow p-4 bg-white rounded">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="studentName" class="form-label">Student Name</label>
+                    <input type="text" class="form-control" id="studentName" placeholder="Enter name" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="course" class="form-label">Course</label>
+                    <select class="form-select" id="course" required onchange="updateSubjects()">
+                        <option value="" disabled selected>Select course</option>
+                        <option value="Basic">Basic</option>
+                        <option value="Computer Operator">Computer Operator</option>
+                        <option value="Accounting Package">Accounting Package</option>
+                        <option value="Graphic Designing">Graphic Designing</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="contact" class="form-label">Contact No</label>
+                    <input type="text" class="form-control" id="contact" placeholder="Enter contact number" required>
+                </div>
+            </div>
+
+            <div id="subjects-container" class="row g-3 mt-3">
+                <!-- Subjects will be dynamically populated here -->
+            </div>
+
+            <button type="submit" class="btn btn-success mt-4">Add Student</button>
+        </form>
+
+        <div class="mt-4">
+            <input type="text" id="search" class="form-control" placeholder="Search by name, course, or contact" onkeyup="searchTable()">
+        </div>
+
+        <div class="table-container">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Course</th>
+                        <th>Contact</th>
+                        <th>Marks</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="studentTable">
+                </tbody>
+            </table>
+        </div>
+
+        <button class="btn btn-primary mt-4" onclick="saveDataAsFile()">Save Data</button>
+    </div>
+
+    <script>
+        let students = [];
+        let studentId = 1;
+
+        const subjectMapping = {
+            "Basic": ["Basic"],
+            "Computer Operator": ["Basic", "Tally", "Photoshop", "Hardware"],
+            "Accounting Package": ["Tally", "Swastik", "Busy", "Excel"],
+            "Graphic Designing": ["Photoshop", "Coreldraw", "Indesign"]
+        };
+
+        function updateSubjects() {
+            const course = document.getElementById("course").value;
+            const subjectsContainer = document.getElementById("subjects-container");
+            subjectsContainer.innerHTML = "";
+
+            if (course && subjectMapping[course]) {
+                subjectMapping[course].forEach(subject => {
+                    const col = document.createElement("div");
+                    col.className = "col-md-3";
+                    col.innerHTML = `
+                        <label for="${subject.toLowerCase()}" class="form-label">${subject}</label>
+                        <input type="number" class="form-control" id="${subject.toLowerCase()}" placeholder="Marks" required>
+                    `;
+                    subjectsContainer.appendChild(col);
+                });
+            }
+        }
+
+        document.getElementById("studentForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const studentName = document.getElementById("studentName").value;
+            const course = document.getElementById("course").value;
+            const contact = document.getElementById("contact").value;
+
+            const marks = {};
+            if (subjectMapping[course]) {
+                subjectMapping[course].forEach(subject => {
+                    marks[subject] = document.getElementById(subject.toLowerCase()).value;
+                });
+            }
+
+            const student = {
+                id: studentId++,
+                name: studentName,
+                course,
+                contact,
+                marks
+            };
+
+            students.push(student);
+            renderTable();
+
+            document.getElementById("studentForm").reset();
+            document.getElementById("subjects-container").innerHTML = "";
+        });
+
+        function renderTable() {
+            const tableBody = document.getElementById("studentTable");
+            tableBody.innerHTML = "";
+
+            students.forEach(student => {
+                const row = document.createElement("tr");
+
+                row.innerHTML = `
+                    <td>${student.id}</td>
+                    <td>${student.name}</td>
+                    <td>${student.course}</td>
+                    <td>${student.contact}</td>
+                    <td>${Object.entries(student.marks).map(([subject, mark]) => `${subject}: ${mark}`).join(", ")}</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm" onclick="editStudent(${student.id})">Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteStudent(${student.id})">Delete</button>
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        function deleteStudent(id) {
+            students = students.filter(student => student.id !== id);
+            renderTable();
+        }
+
+        function editStudent(id) {
+            const student = students.find(student => student.id === id);
+            document.getElementById("studentName").value = student.name;
+            document.getElementById("course").value = student.course;
+            document.getElementById("contact").value = student.contact;
+            updateSubjects();
+
+            if (subjectMapping[student.course]) {
+                subjectMapping[student.course].forEach(subject => {
+                    document.getElementById(subject.toLowerCase()).value = student.marks[subject];
+                });
+            }
+
+            deleteStudent(id);
+        }
+
+        function searchTable() {
+            const query = document.getElementById("search").value.toLowerCase();
+            const tableBody = document.getElementById("studentTable");
+            tableBody.innerHTML = "";
+
+            students
+                .filter(student => 
+                    student.name.toLowerCase().includes(query) ||
+                    student.course.toLowerCase().includes(query) ||
+                    student.contact.includes(query)
+                )
+                .forEach(student => {
+                    const row = document.createElement("tr");
+
+                    row.innerHTML = `
+                        <td>${student.id}</td>
+                        <td>${student.name}</td>
+                        <td>${student.course}</td>
+                        <td>${student.contact}</td>
+                        <td>${Object.entries(student.marks).map(([subject, mark]) => `${subject}: ${mark}`).join(", ")}</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm" onclick="editStudent(${student.id})">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteStudent(${student.id})">Delete</button>
+                        </td>
+                    `;
+
+                    tableBody.appendChild(row);
+                });
+        }
+
+        function saveDataAsFile() {
+            const data = students.map(student => ({
+                id: student.id,
+                name: student.name,
+                course: student.course,
+                contact: student.contact,
+                marks: Object.entries(student.marks).map(([subject, mark]) => `${subject}: ${mark}`).join(", ")
+            }));
+
+            const csvContent = [
+                ["ID", "Name", "Course", "Contact", "Marks"].join(","),
+                ...data.map(row => [row.id, row.name, row.course, row.contact, row.marks].join(","))
+            ].join("\n");
+
+            const blob = new Blob([csvContent], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "students_data.csv";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
